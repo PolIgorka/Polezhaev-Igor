@@ -1,0 +1,110 @@
+#include <algorithm>
+#include <cstddef>
+
+template <typename T>
+class SharedPtr {
+private:
+  T * ptr;
+  size_t * count;
+  void increase() {
+    if (ptr != nullptr) {
+      if (count == nullptr) {
+        count = new size_t(0);
+      }
+      ++(*count);
+    }
+  }
+  void decrease() noexcept {
+    if (ptr == nullptr) {
+      return;
+    }
+    if (*count == 1) {
+      delete count;
+      delete ptr;
+      return;
+    }
+    --(*count);
+  }
+
+public:
+    SharedPtr() noexcept : ptr(nullptr), count(nullptr) {}
+    SharedPtr(T* ptr) : ptr(ptr), count(nullptr) {
+      increase();
+    }
+    SharedPtr(const SharedPtr& other): ptr(other.ptr), count(other.count) {
+      increase();
+    }
+
+    SharedPtr(SharedPtr&& other) noexcept : ptr(other.ptr), count(other.count) {
+      other.ptr = nullptr;
+      other.count = nullptr;
+    }
+
+    SharedPtr& operator=(T* pointer) {
+      if (pointer != ptr) {
+        decrease();
+        ptr = pointer;
+        count = nullptr;
+        increase();
+      }
+      return *this;
+    }
+
+    SharedPtr& operator=(const SharedPtr& other) {
+      if (other.ptr != ptr) {
+        decrease();
+        ptr = other.ptr;
+        count = other.count;
+        increase();
+      }
+      return *this;
+    }
+
+    SharedPtr& operator=(SharedPtr&& other) noexcept {
+      if (other.ptr != ptr) {
+        decrease();
+        ptr = other.ptr;
+        count = other.count;
+        other.ptr = nullptr;
+        other.count = nullptr;
+      }
+      return *this;
+    }
+
+    ~SharedPtr() {
+      decrease();
+    }
+
+    T& operator* () {
+      return *ptr;
+    }
+
+    const T& operator* () const {
+      return *ptr;
+    }
+
+    T* operator-> () noexcept {
+      return ptr;
+    }
+
+    const T* operator-> () const noexcept {
+      return ptr;
+    }
+
+    void reset(T * ptr) noexcept {
+      *this = ptr;
+    }
+
+    void swap(SharedPtr& other) noexcept {
+      std::swap(ptr, other.ptr);
+      std::swap(count, other.count);
+    }
+
+    T * get() const noexcept {
+      return ptr;
+    }
+
+    explicit operator bool() const noexcept {
+      return (count != nullptr);
+    }
+};
